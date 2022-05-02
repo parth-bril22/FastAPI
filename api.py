@@ -6,6 +6,11 @@ from uuid import uuid4
 from fastapi import FastAPI, Depends, HTTPException, Request,Body
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 from datetime import datetime, timezone
+# from starlette.responses import  RedirectResponse #for redirecting to another internal URL
+
+# import os
+# from dotenv import load_dotenv
+# load_dotenv('env')#load database details from .env file
 import bcrypt
 import re
 import uvicorn
@@ -15,12 +20,13 @@ import env
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-#imports from other files
+#imports from our files
 from auth import AuthHandler
 from model import User as ModelUser
 from model import Password_tokens
 from schema import User as SchemaUser
-from schema import LoginSchema,PasswordResetSchema,PasswordChangeSchema
+from schema import LoginSchema
+from schema import PasswordResetSchema,PasswordChangeSchema
 
 
 #---------------------------!!!!!!!!!Datababse_entries!!!!!!!!!!!!!!-------------------------------------
@@ -28,9 +34,12 @@ import json
 import secrets
 from ast import literal_eval
 
+# import copy
+# doc.config = copy.deepcopy(doc.config)
+#https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
+
 from schema import CustomFieldSchema, NodeSchema, ConnectionSchema
 from model import Node, NodeType, Connections, CustomFields, CustomFieldTypes
-
 
 app = FastAPI()
 
@@ -39,6 +48,7 @@ app.add_middleware(DBSessionMiddleware, db_url =  env.DATABASE_URL)
 
 #make an object of the AuthHandler class from the auth.py file
 auth_handler = AuthHandler()
+
 
 
 @app.get("/")
@@ -84,7 +94,7 @@ async def signup(user: SchemaUser):
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
 
         #create a ModelUser instance with the details entered
-        db_user = ModelUser(email = user.email, password = hashed_password.decode('utf-8'), first_name = user.first_name, last_name = user.last_name, register_time = datetime.datetime.now(timezone.utc))
+        db_user = ModelUser(email = user.email, password = hashed_password.decode('utf-8'), first_name = user.first_name, last_name = user.last_name, register_time = datetime.now(timezone.utc))
 
         #add the ModelUser object(db_user) to the database
         db.session.add(db_user)
@@ -95,7 +105,7 @@ async def signup(user: SchemaUser):
 #get details of the user if the email_id entered is valid, else return False
 async def get_user_by_email(my_email: str):
     """
-    Checks if the email exists in the DB. If not, returns false. If it does, returns all details of the user in User Model form from model.py.
+    Checks if the email exists in the DB. If not, returns false. If it does, returns all details of the user in User Model form from models.py.
     """
     user = db.session.query(ModelUser).filter_by(email=my_email).first()
 
@@ -304,11 +314,6 @@ async def delete_user(my_id:int):
      return {'message': 'deleted'}
 
 
-# #start sqlalchemy engine, connect to database and start session
-# engine = create_engine('postgresql+psycopg2://postgres:admin123@localhost:5432/chatbot_events')#://user:password@localhost/db
-# session = sessionmaker(bind=engine)()
-
-# app = FastAPI()
 
 #create a new node
 @app.post('/create_node')
@@ -316,7 +321,7 @@ async def create_node(node:NodeSchema):
     #use of path??
 
     #check if the "type" of node is actually present in the nodetype table
-    prop = db.session.query(NodeType).filter(NodeType.type == node.type).first()
+    prop = session.query(NodeType).filter(NodeType.type == node.type).first()
     #if not, return message
     if(prop == None):
         return {"message": "incorrect type field"}
@@ -351,9 +356,9 @@ async def create_node(node:NodeSchema):
     new_node = Node(name = my_name, path = my_name, type = node.type, node_type = node.node_type, properties = json.dumps(prop_dict), position = json.dumps(node.position))
     #id,name and path are made private by the "_" before name in schemas.py, so frontend need not enter them.
 
-    db.session.add(new_node)
-    db.session.commit()
-    return {"message": "Node created"}
+    session.add(new_node)
+    session.commit()
+    return {"message": "success"}
 
 
 @app.post('/create_connection')
@@ -371,22 +376,22 @@ async def create_connection(conn : ConnectionSchema) :
         return {"message" : "Source and Target node cannot be the same"}
 
     #if the (source_node's + subnode's) connection exists somewhere, update other variables only. Else make a new entry
-    if(db.session.query(Connections).filter_by(source_node = conn.source_node).filter_by(sub_node = conn.sub_node).first() is not None):
-        db.session.query(Connections).filter(Connections.source_node == conn.source_node).filter(Connections.sub_node == conn.sub_node).\
+    if(session.query(Connections).filter_by(source_node = conn.source_node).filter_by(sub_node = conn.sub_node).first() is not None):
+        session.query(Connections).filter(Connections.source_node == conn.source_node).filter(Connections.sub_node == conn.sub_node).\
         update({'target_node':conn.target_node, 'name' : my_name})
     else:
         new_conn = Connections(sub_node = conn.sub_node, source_node = conn.source_node, target_node = conn.target_node, name = my_name)
-        db.session.add(new_conn)
+        session.add(new_conn)
 
-    db.session.commit()
-    return {"message":'Node connected successfully'}
+    session.commit()
+    return {"message":'success'}
 
 
 @app.post('/create_custom_field')
 async def create_custom_field(cus : CustomFieldSchema):
 
     #check if type exists in the customfieldtypes table
-    prop = db.session.query(CustomFieldTypes).filter(CustomFieldTypes.type == cus.type).first()
+    prop = session.query(CustomFieldTypes).filter(CustomFieldTypes.type == cus.type).first()
     
     if(prop == None):
         return {"message": "incorrect type field"}
@@ -411,7 +416,7 @@ async def create_custom_field(cus : CustomFieldSchema):
             try:
                 print("date")
                 format = "%Y-%m-%d"
-                datetime.datetime.strptime(cus.value, format)
+                datetime.strptime(cus.value, format)
             except ValueError:
                 return {"message" : "This is the incorrect date string format. It should be YYYY-MM-DD"}
         else:
@@ -420,15 +425,31 @@ async def create_custom_field(cus : CustomFieldSchema):
 
     
     #if name exists then update fields. Else make a new entry    
-    if(db.session.query(CustomFields).filter_by(name = cus.name).first() is not None):
-        db.session.query(CustomFields).filter(CustomFields.name == cus.name).update({'value':cus.value})
-        db.session.commit()
+    if(session.query(CustomFields).filter_by(name = cus.name).first() is not None):
+        session.query(CustomFields).filter(CustomFields.name == cus.name).update({'value':cus.value})
+        session.commit()
         return {"message":'custom field updated'}
     else:
         new_cus = CustomFields(type = cus.type, name = cus.name, value = cus.value)
-        db.session.add(new_cus)
-        db.session.commit()
-        return {"message":'Custom field created'}
+        session.add(new_cus)
+        session.commit()
+        return {"message":'success'}
+
+if __name__ == "__main__":
+    uvicorn.run(app)
+#-------------!!!!!!!!!!!!!!!!!------------------------------------
+
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request: Request, exc: RequestValidationError):
+#     errors = exc.errors()[0]
+#     msg = errors["msg"]
+#     field = errors["loc"][1]
+#     detail = f"The {msg} for query parameter {field}."
+#     p = ProblemException(HTTP_422_UNPROCESSABLE_ENTITY, "Query validation error",
+#                          detail=detail)
+#     return p.as_response()
+
+
 
 if __name__ == '__main__':
     uvicorn.run(app, host='127.0.0.1', port = 8000)

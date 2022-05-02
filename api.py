@@ -114,7 +114,7 @@ async def get_user_by_email(my_email: str):
         return False
 
     #return all details of the user
-    return ModelUser(id = user.id, email=user.email, password=user.password, first_name=user.first_name, last_name = user.last_name, register_time=user.register_time)
+    return ModelUser(id = user.id, email=user.email, password=user.password, first_name=user.first_name, last_name = user.last_name, created_at=user.created_at)
 
 @app.post("/login/")
 async def authenticate_user(input_user: LoginSchema):

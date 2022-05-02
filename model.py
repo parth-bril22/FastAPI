@@ -17,7 +17,7 @@ class User(Base):
 
 class Password_tokens(Base):
     __tablename__ = 'password_tokens'
-    id = Column(Integer, ForeignKey("login.id", ondelete = "CASCADE"), primary_key = True)
+    id = Column(Integer, ForeignKey("user_info.id", ondelete = "CASCADE"), primary_key = True)
     uuid = Column(String)
     time = Column(DateTime)
     used = Column(BOOLEAN)

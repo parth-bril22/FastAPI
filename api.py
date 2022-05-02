@@ -321,7 +321,7 @@ async def create_node(node:NodeSchema):
     #use of path??
 
     #check if the "type" of node is actually present in the nodetype table
-    prop = session.query(NodeType).filter(NodeType.type == node.type).first()
+    prop = db.session.query(NodeType).filter(NodeType.type == node.type).first()
     #if not, return message
     if(prop == None):
         return {"message": "incorrect type field"}
@@ -356,8 +356,8 @@ async def create_node(node:NodeSchema):
     new_node = Node(name = my_name, path = my_name, type = node.type, node_type = node.node_type, properties = json.dumps(prop_dict), position = json.dumps(node.position))
     #id,name and path are made private by the "_" before name in schemas.py, so frontend need not enter them.
 
-    session.add(new_node)
-    session.commit()
+    db.session.add(new_node)
+    db.session.commit()
     return {"message": "success"}
 
 
@@ -376,14 +376,14 @@ async def create_connection(conn : ConnectionSchema) :
         return {"message" : "Source and Target node cannot be the same"}
 
     #if the (source_node's + subnode's) connection exists somewhere, update other variables only. Else make a new entry
-    if(session.query(Connections).filter_by(source_node = conn.source_node).filter_by(sub_node = conn.sub_node).first() is not None):
-        session.query(Connections).filter(Connections.source_node == conn.source_node).filter(Connections.sub_node == conn.sub_node).\
+    if(db.session.query(Connections).filter_by(source_node = conn.source_node).filter_by(sub_node = conn.sub_node).first() is not None):
+        db.session.query(Connections).filter(Connections.source_node == conn.source_node).filter(Connections.sub_node == conn.sub_node).\
         update({'target_node':conn.target_node, 'name' : my_name})
     else:
         new_conn = Connections(sub_node = conn.sub_node, source_node = conn.source_node, target_node = conn.target_node, name = my_name)
-        session.add(new_conn)
+        db.session.add(new_conn)
 
-    session.commit()
+    db.session.commit()
     return {"message":'success'}
 
 
@@ -391,7 +391,7 @@ async def create_connection(conn : ConnectionSchema) :
 async def create_custom_field(cus : CustomFieldSchema):
 
     #check if type exists in the customfieldtypes table
-    prop = session.query(CustomFieldTypes).filter(CustomFieldTypes.type == cus.type).first()
+    prop = db.session.query(CustomFieldTypes).filter(CustomFieldTypes.type == cus.type).first()
     
     if(prop == None):
         return {"message": "incorrect type field"}
@@ -425,30 +425,15 @@ async def create_custom_field(cus : CustomFieldSchema):
 
     
     #if name exists then update fields. Else make a new entry    
-    if(session.query(CustomFields).filter_by(name = cus.name).first() is not None):
-        session.query(CustomFields).filter(CustomFields.name == cus.name).update({'value':cus.value})
-        session.commit()
+    if(db.session.query(CustomFields).filter_by(name = cus.name).first() is not None):
+        db.session.query(CustomFields).filter(CustomFields.name == cus.name).update({'value':cus.value})
+        db.session.commit()
         return {"message":'custom field updated'}
     else:
         new_cus = CustomFields(type = cus.type, name = cus.name, value = cus.value)
-        session.add(new_cus)
-        session.commit()
+        db.session.add(new_cus)
+        db.session.commit()
         return {"message":'success'}
-
-if __name__ == "__main__":
-    uvicorn.run(app)
-#-------------!!!!!!!!!!!!!!!!!------------------------------------
-
-# @app.exception_handler(RequestValidationError)
-# async def validation_exception_handler(request: Request, exc: RequestValidationError):
-#     errors = exc.errors()[0]
-#     msg = errors["msg"]
-#     field = errors["loc"][1]
-#     detail = f"The {msg} for query parameter {field}."
-#     p = ProblemException(HTTP_422_UNPROCESSABLE_ENTITY, "Query validation error",
-#                          detail=detail)
-#     return p.as_response()
-
 
 
 if __name__ == '__main__':

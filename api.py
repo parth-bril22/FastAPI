@@ -217,7 +217,7 @@ async def get_user_by_id(my_id: int):
     if(user == None):
         return False
     #return all details of the user
-    return ModelUser(id = my_id, email=user.email, password=user.password, first_name=user.first_name, last_name = user.last_name, register_time = user.register_time)
+    return ModelUser(id = my_id, email=user.email, password=user.password, first_name=user.first_name, last_name = user.last_name, created_at = user.created_at)
 
 
 @app.get('/reset_password_link')

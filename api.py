@@ -94,7 +94,7 @@ async def signup(user: SchemaUser):
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
 
         #create a ModelUser instance with the details entered
-        db_user = ModelUser(email = user.email, password = hashed_password.decode('utf-8'), first_name = user.first_name, last_name = user.last_name, register_time = datetime.now(timezone.utc))
+        db_user = ModelUser(email = user.email, password = hashed_password.decode('utf-8'), first_name = user.first_name, last_name = user.last_name, created_at = datetime.now(timezone.utc))
 
         #add the ModelUser object(db_user) to the database
         db.session.add(db_user)

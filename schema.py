@@ -12,20 +12,6 @@ class User(BaseModel):
     class Config:
         orm_mode = True
 
-
-# class FullUser(BaseModel):
-#     id: int
-#     email: str
-#     password: str
-#     first_name: str
-#     last_name: str
-#     register_time: datetime
-    
-
-#     class Config:
-#         orm_mode = True
-
-
 class LoginSchema(BaseModel):
     email : str
     password : str
@@ -71,7 +57,7 @@ class NodeSchema(BaseModel):
     position: Dict = {"top":"0","left":"0"}
 
     # all fields from all types are present. Later in api.py, only the relevant fields will be taken into consideration
-    properties: Dict = {"text":"","value":"" ,"name" :"", "type":"", "source":"", "message":"", "btn":"" }
+    properties: Dict = {"text":"","value":"" ,"name" :"", "type":"", "source":"", "message":"", "btn":"", "id":"" }
 
     class Config:
         orm_mode = True

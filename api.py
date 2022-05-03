@@ -254,11 +254,6 @@ async def reset_password_link(my_uuid:str,ps:PasswordResetSchema):
                 raise HTTPException(status_code=401, detail = 'Passwords length < 7')
             else:
                 new_user.password =  bcrypt.hashpw(ps.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                # #create a ModelUser instance with the details entered #these comments are an alternate way
-                # db_user = ModelUser(id = uuid_details.id, email = new_user.email, password = hashed_password.decode('utf-8'), first_name = new_user.first_name, last_name = new_user.last_name, register_time = new_user.register_time)
-                # #update the hashed password in the database
-                # db_user.password = hashed_password.decode('utf-8')
-                # #add/merge the ModelUser object(db_user) to the database
 
                 db.session.merge(new_user)
                 db.session.commit()
@@ -270,9 +265,6 @@ async def reset_password_link(my_uuid:str,ps:PasswordResetSchema):
                 return {'message':'password change sucessful'}    
         else:
             raise HTTPException(status_code=401, detail = 'Passwords are not same')
-        # url = app.url_path_for("change_password")
-        # response = RedirectResponse(url, my_uuid)
-        # return response
 
 @app.post('/change_password')
 async def change_password(ps:PasswordChangeSchema, my_email = Depends(auth_handler.auth_wrapper) ):
@@ -289,14 +281,8 @@ async def change_password(ps:PasswordChangeSchema, my_email = Depends(auth_handl
         if(ps.new_password == ps.confirm_password and len(ps.new_password) > 6 and ps.new_password != ps.current_password):
             user.password =  bcrypt.hashpw(ps.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-            #create a ModelUser instance with the details entered
-            # db_user = ModelUser(id = my_id, email = user.email, password = hashed_password.decode('utf-8'), first_name = user.first_name, last_name = user.last_name, register_time = user.register_time)
-            # #update the hashed password in the database
-
             # #add/merge the ModelUser object(db_user) to the database
             db.session.merge(user)
-
-            # db.session.query(ModelUser).filter_by(id = my_id).update({ModelUser.password : hashed_password.decode('utf-8')}, synchronize_session = False)
             db.session.commit()
             db.session.close()
             
@@ -345,9 +331,6 @@ async def create_node(node:NodeSchema):
                         else:#TODO:complete <=>...validation
                             if "args" in prop_value_json['||']:
                                 print(prop_value_json['||']["args"][0]["=="])
-                                 #"{\"||\" : {\"args\":[{\"==\":{\"arg1\":\"1\", \"arg2\" : \"2\"}}]}}"
-                            # else:
-                                # return {"message" : "no args"}
     
     #set unique name
     my_name = secrets.token_hex(4)

@@ -9,7 +9,6 @@ FastAPI-SQLAlchemy==0.2.1
 greenlet==1.1.2
 h11==0.13.0
 idna==3.3
-jwt==1.3.1
 psycopg2-binary==2.9.3
 pycparser==2.21
 pydantic==1.9.0
@@ -22,4 +21,4 @@ starlette==0.17.1
 typing-extensions==4.2.0
 uvicorn==0.17.6
 gunicorn
-PyJWT
+pyjwt==2.3.0

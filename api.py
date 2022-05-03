@@ -50,11 +50,6 @@ app.add_middleware(DBSessionMiddleware, db_url =  env.DATABASE_URL)
 auth_handler = AuthHandler()
 
 
-
-@app.get("/")
-async def root():
-    return {"message": "hello world"}
-
 #validate the user, check if the details entered by the user can be used for making a new account
 def validate_user(user:ModelUser):
     """
@@ -129,17 +124,6 @@ async def authenticate_user(input_user: LoginSchema):
         return {'token':token, 'message': 'Details are correct'}#valid for 1 minute and 30 seconds, change expiration time in auth.py
 
 
-@app.get('/protected')
-def protected(request: Request, email = Depends(auth_handler.auth_wrapper)):
-    """
-    The auth.py file has the function auth_wrapper which validates the token by decoding it and checking the credentials.
-    Using that function , the details can only be accessed if there is valid JWT token in the header
-    This function is only to demonstrate that. To run this:
-    curl --header "Authorizaion: Bearer entertokenhere" localhost:8000/protected
-    """
-    return {'email': email}
-
-
 def send_mail(my_uuid:str):
     """
     send password reset email to user via sendgrid.
@@ -185,7 +169,7 @@ async def req_change_password(email_id : str):
     db.session.commit()
     
     #PRINT UUID FOR CHECKING PURPOSES
-    print(my_uuid)
+    # print(my_uuid)
 
     #send email
     return send_mail(my_uuid)    
@@ -220,21 +204,6 @@ async def get_user_by_id(my_id: int):
     return ModelUser(id = my_id, email=user.email, password=user.password, first_name=user.first_name, last_name = user.last_name, created_at = user.created_at)
 
 
-@app.get('/reset_password_link')
-async def reset_password_link(my_uuid:str):
-    #get id,uuid and genreated time of token via method get_uuid_details
-    uuid_details = get_uuid_details((my_uuid))
-
-    if(uuid_details.used == True):
-        raise HTTPException(status_code=400, detail='Link already used once')
-
-    mins_passed = ((datetime.now(timezone.utc) - uuid_details.time).seconds)/60
-    if(mins_passed > 10):
-        raise HTTPException(status_code=401, detail = 'More than 10 minutes have passed')
-    
-    return {'message': 'Hello', 'my_uuid':my_uuid, 'user_id': uuid_details.id}
-
-
 @app.post('/reset_password_link')
 async def reset_password_link(my_uuid:str,ps:PasswordResetSchema):
     #get id,uuid and genreated time of token via method get_uuid_details
@@ -254,7 +223,6 @@ async def reset_password_link(my_uuid:str,ps:PasswordResetSchema):
                 raise HTTPException(status_code=401, detail = 'Passwords length < 7')
             else:
                 new_user.password =  bcrypt.hashpw(ps.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
                 db.session.merge(new_user)
                 db.session.commit()
 
